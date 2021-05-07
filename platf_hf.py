@@ -135,40 +135,56 @@ Train and predict
 """
 
 
-n_features = {2, 4, 8, 16, 32, 64, -1}
-feature_mode = {"raw", "pca", "kpca", "lda", "pca-lda", "lda-pca", "kpca-lda", "lda-kpca"}
+n_features = {4, 8, 16, 32, -1}
+feature_mode = {"raw", "pca", "kpca", "lda"} #, "pca-lda", "lda-pca", "kpca-lda", "lda-kpca"}
 
 # Applying PCA
 # nem csökkneti a featureket, hanem újat hoz létre beőlük (most épp 2-t, ezek a principal compok)
 from sklearn.decomposition import PCA  
-pca = PCA(n_components=2)
+pca = PCA(n_components=2,
+          random_state=42)
 X_train = pca.fit_transform(X_train)
 X_task = pca.transform(X_task)
 
+kernel = {'linear', 'poly', 'rbf', 'sigmoid'}
 # Applying Kernel PCA
 from sklearn.decomposition import KernelPCA
-kpca = KernelPCA(n_components=32, kernel='rbf')
+kpca = KernelPCA(n_components=2, 
+                 kernel='rbf',
+                  shrinkage='auto',
+                 n_jobs=-1)
 X_train = kpca.fit_transform(X_train)
 X_task = kpca.transform(X_task)
 
+
+solver = {'svd', 'lsqr', 'eigen'}
 # Applying LDA
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
-lda = LDA(n_components=32)
+lda = LDA(n_components=2,
+          solver='svd',
+          shrinkage='auto')
 X_train = lda.fit_transform(X_train, y_target)
 X_task = lda.transform(X_task)
 
 
 
 
-
+neighbors = {3, 5, 10, 20}
 # Training the K-NN model on the Training set
 #minkowski with p=2 is equivalent to the standard Euclidean metric (ezek a defaultak)
 from sklearn.neighbors import KNeighborsClassifier
-classifier = KNeighborsClassifier(n_neighbors=5, metric="minkowski", p=2)
+classifier = KNeighborsClassifier(n_neighbors=5, 
+                                  metric="minkowski", 
+                                  p=2, 
+                                  n_jobs=-1)
 
+LogisticRegression_params = {'C': [0.1, 0.5, 1, 2, 5]}
 # Training the Logistic Regression model on the Training set
 from sklearn.linear_model import LogisticRegression
-classifier = LogisticRegression(random_state=42, max_iter=1000)
+classifier = LogisticRegression(random_state=42, 
+                                max_iter=1000, 
+                                class_weight='balanced', 
+                                n_jobs=-1)
 
 # Training the Naive Bayes model on the Training set
 from sklearn.naive_bayes import GaussianNB
@@ -176,19 +192,59 @@ classifier = GaussianNB()
 
 # Training the Decision Tree Classification model on the Training set
 from sklearn.tree import DecisionTreeClassifier
-classifier = DecisionTreeClassifier(criterion='entropy', random_state=42)
-
+classifier = DecisionTreeClassifier(criterion='entropy', 
+                                    random_state=42, 
+                                    max_features='auto', 
+     
+                                    
+     class_weight='balanced')
+RandomForestClassifier_params = {
+    'n_estimators': [50, 100, 200],
+    'max_depth': [None, 10, 25],
+    'max_leaf_nodes': [None, 100, 200]
+}
+n_estimators = {10, 50, 100}
 # Training the Random Forest Classification model on the Training set
 from sklearn.ensemble import RandomForestClassifier
-classifier = RandomForestClassifier(n_estimators=10, criterion='entropy', random_state=42)
+classifier = RandomForestClassifier(n_estimators=10, 
+                                    criterion='entropy',
+                                    max_features="auto",
+                                    class_weight='balanced',
+                                    n_jobs=-1,
+                                    random_state=42)
 
+
+SVC_params = [
+    {'C': [0.1, 0.5, 1, 2, 5], 'kernel': ['linear']}, #két dictionary a gamma miatt
+    {'C': [0.1, 0.5, 1, 2, 5], 'kernel': ['rbf', 'poly', 'sigmoid'], 'gamma': [0.1, 0.5, 1, 2, 5]}
+]
 # Training the Kernel SVM model on the Training set
 from sklearn.svm import SVC
-classifier = SVC(kernel='rbf', random_state=42, probability=True)
+classifier = SVC(kernel='rbf', 
+                 random_state=42,
+                 class_weight='balanced',
+                 probability=True)
 
+
+XGBC_params = {
+        'min_child_weight': [1, 2, 50],
+        'gamma': [0.1, 0.5, 1, 2, 5],
+        'colsample_bytree': [0.6, 0.8, 1.0],
+        'max_depth': [3, 5, 10],
+        'n_estimators': [100, 200, 500],
+        'learning_rate': [0.05, 0.1, 0.2, 0.5],
+        
+        'reg_alpha': [0, 1, 1.2],
+        'reg_lambda': [1, 1.2],
+        'subsample': [0.7, 0.8, 0.9, 1],
+        'seed': 42,
+        'random_state': 42,
+        'n_jobs': -1
+        }
 # Training XGBoost on the Training set
 from xgboost import XGBClassifier
-classifier = XGBClassifier()
+classifier = XGBClassifier(n_jobs=-1, 
+                           random_state=42)
 
 
 
@@ -237,7 +293,7 @@ parameters = [{'C': [0.25, 0.5, 0.75, 1], 'kernel': ['linear']}, #két dictionar
 
 grid_search = GridSearchCV(estimator = classifier,
                            param_grid = parameters,
-                           scoring = 'accuracy', #mivel classification
+                           scoring = 'accuracy', #mivel classification scoring='roc_auc',
                            cv = 10, #built in cross-validation
                            n_jobs = -1) #all the processors will be use
 
